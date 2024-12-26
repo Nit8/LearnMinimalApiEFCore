@@ -65,7 +65,7 @@ namespace LearnMinimalApiEFCore
             builder.Services.AddDbContext<MovieDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-            builder.Services.AddScoped<IMovieRepository, MovieDBRepository>();
+            builder.Services.AddScoped<IMovieRepository, MovieDapperRepository>();
 
             // Add Swagger services
             builder.Services.AddEndpointsApiExplorer();
