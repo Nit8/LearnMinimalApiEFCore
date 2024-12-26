@@ -1,6 +1,5 @@
 ﻿using LearnMinimalApiEFCore.MovieAPI.Models;
-using LearnMinimalApiEFCore.Data;
-using Microsoft.EntityFrameworkCore;
+using LearnMinimalApiEFCore.MovieAPI.Repositories;
 
 namespace LearnMinimalApiEFCore.MovieAPI.EndPoints
 {
@@ -9,59 +8,41 @@ namespace LearnMinimalApiEFCore.MovieAPI.EndPoints
         public static void MapMovieEndpoints(this WebApplication app)
         {
             // GET: Retrieve all movies
-            app.MapGet("/movies", async (MovieDbContext db) =>
+            app.MapGet("/movies", async (IMovieRepository repository) =>
             {
-                return await db.Movies.ToListAsync();
+                return Results.Ok(await repository.GetAllAsync());
             });
 
             // GET: Retrieve a single movie by ID
-            app.MapGet("/movies/{id:int}", async (MovieDbContext db, int id) =>
+            app.MapGet("/movies/{id:int}", async (IMovieRepository repository, int id) =>
             {
-                var movie = await db.Movies.FindAsync(id);
+                var movie = await repository.GetByIdAsync(id);
                 return movie is not null ? Results.Ok(movie) : Results.NotFound("Movie not found.");
             });
 
             // POST: Add a new movie
-            app.MapPost("/movies", async (MovieDbContext db, Movie movie) =>
+            app.MapPost("/movies", async (IMovieRepository repository, Movie movie) =>
             {
-                // Check if the movie already exists
-                if (await db.Movies.AnyAsync(m => m.Title == movie.Title && m.ReleaseYear == movie.ReleaseYear))
+                if (await repository.ExistsAsync(movie.Title, movie.ReleaseYear))
                     return Results.BadRequest("Movie already exists.");
 
-                // Add the movie to the database
-                db.Movies.Add(movie);
-                await db.SaveChangesAsync();
-
-                return Results.Created($"/movies/{movie.Id}", movie);
+                var addedMovie = await repository.AddAsync(movie);
+                return Results.Created($"/movies/{addedMovie.Id}", addedMovie);
             });
 
             // PUT: Update an existing movie
-            app.MapPut("/movies/{id:int}", async (MovieDbContext db, int id, Movie updatedMovie) =>
+            app.MapPut("/movies/{id:int}", async (IMovieRepository repository, int id, Movie updatedMovie) =>
             {
-                var movie = await db.Movies.FindAsync(id);
-                if (movie is null)
-                    return Results.NotFound("Movie not found.");
-
-                // Update the movie details
-                movie.Title = updatedMovie.Title;
-                movie.ReleaseYear = updatedMovie.ReleaseYear;
-
-                await db.SaveChangesAsync();
-                return Results.Ok(movie);
+                var movie = await repository.UpdateAsync(id, updatedMovie);
+                return movie is not null ? Results.Ok(movie) : Results.NotFound("Movie not found.");
             });
 
             // DELETE: Remove a movie
-            app.MapDelete("/movies/{id:int}", async (MovieDbContext db, int id) =>
+            app.MapDelete("/movies/{id:int}", async (IMovieRepository repository, int id) =>
             {
-                var movie = await db.Movies.FindAsync(id);
-                if (movie is null)
-                    return Results.NotFound("Movie not found.");
-
-                // Remove the movie from the database
-                db.Movies.Remove(movie);
-                await db.SaveChangesAsync();
-
-                return Results.Ok("Movie deleted successfully.");
+                return await repository.DeleteAsync(id)
+                    ? Results.Ok("Movie deleted successfully.")
+                    : Results.NotFound("Movie not found.");
             });
         }
     }
