@@ -65,11 +65,13 @@ namespace LearnMinimalApiEFCore
             builder.Services.AddDbContext<MovieDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-            builder.Services.AddScoped<IMovieRepository, MovieDapperRepository>();
+            builder.Services.AddScoped<IMovieRepository, MovieDBRepository>();
 
             // Add Swagger services
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+            builder.Services.AddControllers();
 
             // Build the application
             var app = builder.Build();
@@ -88,7 +90,10 @@ namespace LearnMinimalApiEFCore
             app.MapGet("/", () => "Welcome to the Movie API!"); // Test endpoint
 
             //var repository = new MovieRepository();
-            app.MapMovieEndpoints();
+            //app.MapMovieEndpoints();
+
+
+            app.MapControllers();
 
             // Run the application
             app.Run();
